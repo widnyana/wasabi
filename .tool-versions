@@ -1,0 +1,5 @@
+golang                        1.24.2
+ubi:mvdan/gofumpt             0.7.0
+ubi:securego/gosec            2.22.3
+ubi:incu6us/goimports-reviser 3.9.1
+ubi:golangci/golangci-lint    2.1.1
