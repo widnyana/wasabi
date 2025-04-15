@@ -27,3 +27,6 @@ release/cli
 coverage.txt
 build/
 .env
+
+
+docs/ignored

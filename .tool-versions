@@ -3,3 +3,4 @@ ubi:mvdan/gofumpt             0.7.0
 ubi:securego/gosec            2.22.3
 ubi:incu6us/goimports-reviser 3.9.1
 ubi:golangci/golangci-lint    2.1.1
+aqua:swaggo/swag              1.16.4
