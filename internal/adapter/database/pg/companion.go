@@ -14,7 +14,11 @@ import (
 )
 
 // EnableTracing enables OpenTelemetry tracing for GORM database operations.
-func EnableTracing(db *gorm.DB) error {
+func EnableTracing(ctx context.Context, db *gorm.DB, logger *otelzap.Logger) error {
+	_, span := otel.Tracer("postgres").Start(ctx, "enable-tracing")
+	defer span.End()
+
+	logger.Debug("enabling gorm tracing plugin")
 	return db.Use(tracing.NewPlugin())
 }
 

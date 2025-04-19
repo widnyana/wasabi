@@ -10,6 +10,11 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+type Config struct {
+	Level       string `mapstructure:"level" default:"INFO"`
+	CallerDepth int    `mapstructure:"caller_depth" default:"0"`
+}
+
 var Module = fx.Options(
 	// GetLogger provides an *otelzap.Logger instance. This logger is
 	// configured with JSON encoding, writing to standard output, and
@@ -44,36 +49,59 @@ var Module = fx.Options(
 	}),
 )
 
-const callerDepthAdjustment = 3
+const callerDepthAdjustment = 0
 
-func newLogger() *zap.Logger {
+func newLogger(cfg Config, level zapcore.Level) *zap.Logger {
 	encoderCfg := zapcore.EncoderConfig{
 		TimeKey:        "ts",
 		MessageKey:     "msg",
 		LevelKey:       "level",
 		NameKey:        "logger",
 		StacktraceKey:  "stacktrace",
+		CallerKey:      "caller",
 		FunctionKey:    zapcore.OmitKey,
 		EncodeLevel:    zapcore.CapitalLevelEncoder,
 		EncodeTime:     zapcore.ISO8601TimeEncoder,
 		EncodeDuration: zapcore.StringDurationEncoder,
 		EncodeCaller:   zapcore.ShortCallerEncoder,
 	}
-	core := zapcore.NewCore(zapcore.NewJSONEncoder(encoderCfg), os.Stdout, zap.InfoLevel)
+
+	core := zapcore.NewCore(
+		zapcore.NewJSONEncoder(encoderCfg),
+		os.Stdout,
+		level,
+	)
+
 	return zap.New(core, zap.AddCaller()).
 		WithOptions(
 			zap.WithCaller(true),
+			zap.AddStacktrace(zap.ErrorLevel),
+			zap.AddCallerSkip(cfg.CallerDepth),
 		)
 }
 
-func GetLogger() (*otelzap.Logger, error) {
-	logger := otelzap.New(newLogger(),
+func GetLogger(cfg Config) (*otelzap.Logger, error) {
+	level, err := levelFromString(cfg.Level)
+	if err != nil {
+		level = zapcore.InfoLevel
+	}
+
+	logger := otelzap.New(newLogger(cfg, level),
+		otelzap.WithErrorStatusLevel(zapcore.WarnLevel),
+		otelzap.WithMinLevel(level),
 		otelzap.WithCaller(true),
 		otelzap.WithCallerDepth(callerDepthAdjustment),
-		otelzap.WithMinLevel(zap.InfoLevel),
+		otelzap.WithMinLevel(level),
+		otelzap.WithErrorStatusLevel(zapcore.WarnLevel),
 	)
 
 	_ = otelzap.ReplaceGlobals(logger)
 
 	return logger, nil
+}
+
+func levelFromString(s string) (zapcore.Level, error) {
+	var level zapcore.Level
+	err := level.UnmarshalText([]byte(s))
+	return level, err
 }
