@@ -4,3 +4,4 @@ ubi:securego/gosec            2.22.3
 ubi:incu6us/goimports-reviser 3.9.1
 ubi:golangci/golangci-lint    2.1.1
 aqua:swaggo/swag              1.16.4
+aqua:air-verse/air            1.61.7
