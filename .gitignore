@@ -28,5 +28,8 @@ coverage.txt
 build/
 .env
 
-
+.bin
+gosec.xml
 docs/ignored
+target
+tmp/

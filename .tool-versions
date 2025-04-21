@@ -1,7 +1,9 @@
 golang                        1.24.2
-ubi:mvdan/gofumpt             0.7.0
+ubi:mvdan/gofumpt             0.8.0
 ubi:securego/gosec            2.22.3
 ubi:incu6us/goimports-reviser 3.9.1
-ubi:golangci/golangci-lint    2.1.1
+ubi:golangci/golangci-lint    2.1.2
 aqua:swaggo/swag              1.16.4
 aqua:air-verse/air            1.61.7
+ubi:grishy/gopkgview          1.0.1
+aqua:Zxilly/go-size-analyzer  1.8.1

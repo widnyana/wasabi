@@ -4,12 +4,13 @@ tmp_dir = "tmp"
 
 [build]
   args_bin = []
-  bin = "./tmp/wasabi-rest-api"
-  cmd = "go build -o ./tmp/wasabi-rest-api ./cmd/http-server"
+  bin = "./target/http-server"
+  cmd = "go build -race -o ./target/http-server ./cmd/http-server"
   delay = 1000
   exclude_dir = ["assets", "tmp", "vendor", "testdata", "docs", ".vscode",  ".bin"]
   exclude_file = [
-    ".tool-versions"
+    ".tool-versions",
+    "README.md"
   ]
   exclude_regex = ["_test.go", ".yaml"]
   exclude_unchanged = false
