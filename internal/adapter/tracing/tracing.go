@@ -14,63 +14,99 @@ import (
 	"go.uber.org/fx"
 )
 
-var Module = fx.Module(
-	"tracing",
+// Module provides tracing functionality
+func Module() fx.Option {
+	return fx.Options(
 
-	fx.Provide(func() trace.Tracer {
-		return otel.Tracer("wasabi")
-	}),
-
-	fx.Provide(func(config Config) *otlptrace.Exporter {
-		opts := []otlptracegrpc.Option{
-			otlptracegrpc.WithEndpoint(config.Addr),
-			otlptracegrpc.WithTimeout(config.Timeout),
-		}
-
-		if !config.Secure {
-			opts = append(opts, otlptracegrpc.WithInsecure())
-		}
-
-		return otlptracegrpc.NewUnstarted(opts...)
-	}),
-
-	fx.Provide(func(config Config, exporter *otlptrace.Exporter) *sdktrace.TracerProvider {
-		provider := sdktrace.NewTracerProvider(
-			sdktrace.WithSampler(sdktrace.TraceIDRatioBased(config.SampleRate)),
-			sdktrace.WithBatcher(exporter),
-			sdktrace.WithResource(resource.NewWithAttributes(
-				semconv.SchemaURL,
-				semconv.ServiceNameKey.String("wasabi"),
-			)),
-		)
-
-		otel.SetTracerProvider(provider)
-
-		otel.SetTextMapPropagator(
-			propagation.NewCompositeTextMapPropagator(
-				propagation.TraceContext{},
-				propagation.Baggage{},
-			),
-		)
-
-		return provider
-	}),
-
-	fx.Invoke(func(
-		lifecycle fx.Lifecycle,
-		exporter *otlptrace.Exporter,
-		provider *sdktrace.TracerProvider,
-	) {
-		lifecycle.Append(fx.Hook{
-			OnStart: func(ctx context.Context) error {
-				return exporter.Start(ctx)
-			},
-			OnStop: func(ctx context.Context) error {
-				if err := exporter.Shutdown(ctx); err != nil {
-					return err
+		fx.Provide(
+			func(cfg *Config) (*otlptrace.Exporter, error) {
+				if !cfg.Enable {
+					return nil, nil
 				}
-				return provider.Shutdown(ctx)
+
+				opts := []otlptracegrpc.Option{
+					otlptracegrpc.WithEndpoint(cfg.Addr),
+					otlptracegrpc.WithTimeout(cfg.Timeout),
+				}
+
+				if !cfg.Secure {
+					opts = append(opts, otlptracegrpc.WithInsecure())
+				}
+
+				return otlptracegrpc.NewUnstarted(opts...), nil
 			},
-		})
-	}),
-)
+
+			func(cfg *Config, exporter *otlptrace.Exporter) (*sdktrace.TracerProvider, error) {
+				if !cfg.Enable {
+					return nil, nil
+				}
+
+				opts := tracerProviderOpts(cfg, exporter)
+				provider := sdktrace.NewTracerProvider(opts...)
+
+				otel.SetTracerProvider(provider)
+
+				otel.SetTextMapPropagator(
+					propagation.NewCompositeTextMapPropagator(
+						propagation.TraceContext{},
+						propagation.Baggage{},
+					),
+				)
+
+				return provider, nil
+			},
+
+			func(cfg *Config, provider *sdktrace.TracerProvider) (trace.Tracer, error) {
+				if !cfg.Enable {
+					return otel.Tracer("wasabi-disabled"), nil
+				}
+
+				return provider.Tracer("wasabi", tracerOpts()...), nil
+			},
+		),
+
+		fx.Invoke(
+			func(
+				lifecycle fx.Lifecycle,
+				cfg *Config,
+				exporter *otlptrace.Exporter,
+				provider *sdktrace.TracerProvider,
+			) {
+				if !cfg.Enable {
+					return
+				}
+
+				lifecycle.Append(fx.Hook{
+					OnStart: func(ctx context.Context) error {
+						return exporter.Start(ctx)
+					},
+					OnStop: func(ctx context.Context) error {
+						if err := exporter.Shutdown(ctx); err != nil {
+							return err
+						}
+						return provider.Shutdown(ctx)
+					},
+				})
+			},
+		),
+	)
+}
+
+func tracerProviderOpts(config *Config, exporter *otlptrace.Exporter) []sdktrace.TracerProviderOption {
+	tpOpts := []sdktrace.TracerProviderOption{
+		sdktrace.WithSampler(sdktrace.TraceIDRatioBased(config.SampleRate)),
+		sdktrace.WithBatcher(exporter),
+		sdktrace.WithResource(resource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceNameKey.String("wasabi"),
+		)),
+	}
+
+	return tpOpts
+}
+
+func tracerOpts() []trace.TracerOption {
+	tOpts := []trace.TracerOption{}
+
+	return tOpts
+}

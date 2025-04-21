@@ -44,7 +44,7 @@ type Config struct {
 // using the provided configuration and performs an initial connection check.
 // Returns a GORM database instance or an error if the connection fails.
 func NewGorm(
-	config Config,
+	config *Config,
 	logger *otelzap.Logger,
 ) (*gorm.DB, error) {
 	ctx, span := otel.Tracer("postgres").Start(context.TODO(), "new-gorm")

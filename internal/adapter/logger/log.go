@@ -70,7 +70,7 @@ func provideEncoder(mode string) zapcore.Encoder {
 	return encoder
 }
 
-func newLogger(cfg Config, level zapcore.Level) *zap.Logger {
+func newLogger(cfg *Config, level zapcore.Level) *zap.Logger {
 	core := zapcore.NewCore(
 		provideEncoder(cfg.Encoder),
 		os.Stdout,
@@ -91,7 +91,7 @@ func levelFromString(s string) (zapcore.Level, error) {
 	return level, err
 }
 
-func GetLogger(cfg Config) (*otelzap.Logger, error) {
+func GetLogger(cfg *Config) (*otelzap.Logger, error) {
 	level, err := levelFromString(cfg.Level)
 	if err != nil {
 		level = zapcore.InfoLevel

@@ -9,6 +9,7 @@ import (
 	"github.com/widnyana/wasabi/internal/adapter/metrics"
 	"github.com/widnyana/wasabi/internal/adapter/redis"
 	"github.com/widnyana/wasabi/internal/adapter/tracing"
+	"github.com/widnyana/wasabi/internal/constant"
 )
 
 var (
@@ -25,11 +26,16 @@ var (
 	// each provider will be called by fx.Options
 	Providers = fx.Options(
 		fx.Provide(NewAppConfig),
-		fx.Provide(func(config *AppConfig) http.Config { return config.HTTP }),
-		fx.Provide(func(config *AppConfig) redis.Config { return config.Redis }),
-		fx.Provide(func(config *AppConfig) pg.Config { return config.Postgres }),
-		fx.Provide(func(config *AppConfig) metrics.Config { return config.Metrics }),
-		fx.Provide(func(config *AppConfig) tracing.Config { return config.Tracing }),
-		fx.Provide(func(config *AppConfig) logger.Config { return config.Log }),
+		fx.Provide(func(config *AppConfig) *http.Config { return &config.HTTP }),
+		fx.Provide(func(config *AppConfig) *redis.Config { return &config.Redis }),
+		fx.Provide(func(config *AppConfig) *pg.Config { return &config.Postgres }),
+		fx.Provide(func(config *AppConfig) *metrics.Config { return &config.Metrics }),
+		fx.Provide(func(config *AppConfig) *tracing.Config {
+			cfg := &config.Tracing
+			cfg.Name = constant.AppName
+
+			return cfg
+		}),
+		fx.Provide(func(config *AppConfig) *logger.Config { return &config.Log }),
 	)
 )

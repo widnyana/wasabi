@@ -62,7 +62,7 @@ func NewFiber(logger *otelzap.Logger, probe Probe) *fiber.App {
 }
 
 // HookFiber hooks the Fiber app to the lifecycle.
-func HookFiber(lifecycle fx.Lifecycle, app *fiber.App, config Config, logger *otelzap.Logger) {
+func HookFiber(lifecycle fx.Lifecycle, app *fiber.App, config *Config, logger *otelzap.Logger) {
 	lifecycle.Append(fx.Hook{
 		OnStart: func(context.Context) error {
 			go func() {
@@ -80,6 +80,7 @@ func HookFiber(lifecycle fx.Lifecycle, app *fiber.App, config Config, logger *ot
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
+			logger.Info("shutting down http server")
 			return app.ShutdownWithContext(ctx)
 		},
 	})
