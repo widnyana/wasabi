@@ -4,55 +4,22 @@ import (
 	"os"
 
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
-	"go.uber.org/fx"
-	"go.uber.org/fx/fxevent"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
 type Config struct {
+	Encoder     string `mapstructure:"encoder" default:"console"`
 	Level       string `mapstructure:"level" default:"INFO"`
 	CallerDepth int    `mapstructure:"caller_depth" default:"0"`
 }
 
-var Module = fx.Options(
-	// GetLogger provides an *otelzap.Logger instance. This logger is
-	// configured with JSON encoding, writing to standard output, and
-	// using the Info level for logging. It also integrates with
-	// OpenTelemetry for tracing context.
-	fx.Provide(GetLogger),
-
-	// This anonymous function provides an *otelzap.SugaredLogger.
-	// A SugaredLogger offers a more convenient interface for logging
-	// without explicit formatting, using methods like Infof, Debugf, etc.
-	// It's derived from the base *otelzap.Logger.
-	fx.Provide(func(logger *otelzap.Logger) *otelzap.SugaredLogger {
-		return logger.Sugar()
-	}),
-
-	// This anonymous function provides the underlying *zap.Logger.
-	// This is the core Zap logger instance that provides structured logging
-	// capabilities with fields. The *otelzap.Logger wraps this *zap.Logger
-	// to add OpenTelemetry integration.
-	fx.Provide(func(logger *otelzap.Logger) *zap.Logger {
-		return logger.Logger
-	}),
-
-	// WithLogger configures Fx's internal event logging to use the
-	// provided *otelzap.Logger. It creates a fxevent.ZapLogger,
-	// sets its underlying Zap Logger, and then sets the log level for
-	// Fx's events to DebugLevel, ensuring verbose output of Fx lifecycle events.
-	fx.WithLogger(func(logger *otelzap.Logger) fxevent.Logger {
-		l := &fxevent.ZapLogger{Logger: logger.Logger}
-		l.UseLogLevel(zap.DebugLevel)
-		return l
-	}),
+const (
+	callerDepthAdjustment = 0
 )
 
-const callerDepthAdjustment = 0
-
-func newLogger(cfg Config, level zapcore.Level) *zap.Logger {
-	encoderCfg := zapcore.EncoderConfig{
+var (
+	jsonEncoderConfig = zapcore.EncoderConfig{
 		TimeKey:        "ts",
 		MessageKey:     "msg",
 		LevelKey:       "level",
@@ -66,8 +33,47 @@ func newLogger(cfg Config, level zapcore.Level) *zap.Logger {
 		EncodeCaller:   zapcore.ShortCallerEncoder,
 	}
 
+	consoleEncoderConfig = zapcore.EncoderConfig{
+		TimeKey:          "ts",
+		MessageKey:       "msg",
+		LevelKey:         "level",
+		NameKey:          "logger",
+		StacktraceKey:    "stacktrace",
+		ConsoleSeparator: "\t",
+		FunctionKey:      zapcore.OmitKey,
+		EncodeTime:       zapcore.RFC3339TimeEncoder,
+		EncodeLevel:      zapcore.CapitalColorLevelEncoder,
+		EncodeDuration:   zapcore.SecondsDurationEncoder,
+		EncodeCaller:     zapcore.ShortCallerEncoder,
+	}
+)
+
+// provideEncoder returns a zapcore.Encoder based on the provided logging mode.
+//
+// Supported modes:
+//   - "json": Returns a JSON encoder using jsonEncoderConfig.
+//   - "console" or any other value: Returns a Console encoder using consoleEncoderConfig.
+//
+// If the mode is unrecognized or empty, it defaults to the Console encoder.
+func provideEncoder(mode string) zapcore.Encoder {
+	var encoder zapcore.Encoder
+
+	switch mode {
+	case "json":
+		encoder = zapcore.NewJSONEncoder(jsonEncoderConfig)
+	case "console":
+	default:
+		encoder = zapcore.NewConsoleEncoder(consoleEncoderConfig)
+
+	}
+
+	return encoder
+}
+
+func newLogger(cfg Config, level zapcore.Level) *zap.Logger {
+
 	core := zapcore.NewCore(
-		zapcore.NewJSONEncoder(encoderCfg),
+		provideEncoder(cfg.Encoder),
 		os.Stdout,
 		level,
 	)
@@ -78,6 +84,12 @@ func newLogger(cfg Config, level zapcore.Level) *zap.Logger {
 			zap.AddStacktrace(zap.ErrorLevel),
 			zap.AddCallerSkip(cfg.CallerDepth),
 		)
+}
+
+func levelFromString(s string) (zapcore.Level, error) {
+	var level zapcore.Level
+	err := level.UnmarshalText([]byte(s))
+	return level, err
 }
 
 func GetLogger(cfg Config) (*otelzap.Logger, error) {
@@ -98,10 +110,4 @@ func GetLogger(cfg Config) (*otelzap.Logger, error) {
 	_ = otelzap.ReplaceGlobals(logger)
 
 	return logger, nil
-}
-
-func levelFromString(s string) (zapcore.Level, error) {
-	var level zapcore.Level
-	err := level.UnmarshalText([]byte(s))
-	return level, err
 }
