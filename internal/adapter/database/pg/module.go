@@ -16,6 +16,5 @@ var (
 	Invokers = fx.Options(
 		fx.Invoke(EnableTracing),
 		fx.Invoke(HookConnection),
-		fx.Invoke(configureConnPool),
 	)
 )

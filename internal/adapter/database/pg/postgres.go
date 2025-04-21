@@ -30,6 +30,9 @@ type Config struct {
 	ConnMaxLifetimeMillis int `envconfig:"conn_max_lifetime_millis" default:"7200000"` // Default to 2 hours in milliseconds
 	MaxIdleConns          int `envconfig:"max_idle_conns" default:"10"`
 	MaxOpenConns          int `envconfig:"max_open_conns" default:"50"`
+
+	// Feature Gate
+	EnableTracing bool `mapstructure:"enable_tracing" default:"false"`
 }
 
 // NewGorm initializes a new GORM database connection for PostgreSQL.
@@ -40,11 +43,14 @@ type Config struct {
 // It also retrieves the underlying `sql.DB` instance to configure the connection pool
 // using the provided configuration and performs an initial connection check.
 // Returns a GORM database instance or an error if the connection fails.
-func NewGorm(config Config, logger *otelzap.Logger) (*gorm.DB, error) {
+func NewGorm(
+	config Config,
+	logger *otelzap.Logger,
+) (*gorm.DB, error) {
 	ctx, span := otel.Tracer("postgres").Start(context.TODO(), "new-gorm")
 	defer span.End()
 
-	logger.Ctx(ctx).Info("initializing gorm postgresql connection")
+	logger.Ctx(ctx).Info("initializing postgresql connection")
 
 	level := gormlogger.Error
 	if config.Debug {
@@ -73,6 +79,12 @@ func NewGorm(config Config, logger *otelzap.Logger) (*gorm.DB, error) {
 		return nil, err
 	}
 
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, err
+	}
+
+	configurePool(ctx, sqlDB, logger, config)
 	return db, nil
 }
 

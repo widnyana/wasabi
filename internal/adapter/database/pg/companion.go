@@ -14,7 +14,11 @@ import (
 )
 
 // EnableTracing enables OpenTelemetry tracing for GORM database operations.
-func EnableTracing(ctx context.Context, db *gorm.DB, logger *otelzap.Logger) error {
+func EnableTracing(ctx context.Context, logger *otelzap.Logger, db *gorm.DB, cfg Config) error {
+	if !cfg.EnableTracing {
+		return nil
+	}
+
 	_, span := otel.Tracer("postgres").Start(ctx, "enable-tracing")
 	defer span.End()
 
@@ -27,16 +31,6 @@ func HookConnection(lifecycle fx.Lifecycle, sqlDB *sql.DB) {
 	lifecycle.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error { return sqlDB.PingContext(ctx) },
 		OnStop:  func(_ context.Context) error { return sqlDB.Close() },
-	})
-}
-
-// configureConnPool configures the database connection pool settings during application startup.
-func configureConnPool(lc fx.Lifecycle, sqlDB *sql.DB, cfg Config, logger *otelzap.Logger) {
-	lc.Append(fx.Hook{
-		OnStart: func(ctx context.Context) error {
-			configurePool(ctx, sqlDB, logger, cfg)
-			return nil
-		},
 	})
 }
 
@@ -59,7 +53,7 @@ func configurePool(
 
 // applyPoolSetting applies all database connection pool settings
 func applyPoolSetting(sqlDB *sql.DB, config Config, logger *otelzap.Logger) {
-	logger.Info("applying database connection pool settings")
+	logger.Debug("applying database connection pool settings")
 
 	// Set MaxIdleConns
 	maxIdleConns := config.MaxIdleConns
