@@ -71,7 +71,6 @@ func provideEncoder(mode string) zapcore.Encoder {
 }
 
 func newLogger(cfg Config, level zapcore.Level) *zap.Logger {
-
 	core := zapcore.NewCore(
 		provideEncoder(cfg.Encoder),
 		os.Stdout,

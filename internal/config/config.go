@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/kelseyhightower/envconfig"
+
 	"github.com/widnyana/wasabi/internal/adapter/database/pg"
 	"github.com/widnyana/wasabi/internal/adapter/http"
 	"github.com/widnyana/wasabi/internal/adapter/logger"

@@ -1,13 +1,14 @@
 package config
 
 import (
+	"go.uber.org/fx"
+
 	"github.com/widnyana/wasabi/internal/adapter/database/pg"
 	"github.com/widnyana/wasabi/internal/adapter/http"
 	"github.com/widnyana/wasabi/internal/adapter/logger"
 	"github.com/widnyana/wasabi/internal/adapter/metrics"
 	"github.com/widnyana/wasabi/internal/adapter/redis"
 	"github.com/widnyana/wasabi/internal/adapter/tracing"
-	"go.uber.org/fx"
 )
 
 var (
