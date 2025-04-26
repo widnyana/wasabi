@@ -1,0 +1,3 @@
+[submodule "datasource"]
+	path = datasource
+	url = git@me.github.com:damarseta/raw-datasource.git
