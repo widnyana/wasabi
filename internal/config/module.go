@@ -33,6 +33,8 @@ var (
 		fx.Provide(func(config *AppConfig) *tracing.Config {
 			cfg := &config.Tracing
 			cfg.Name = constant.AppName
+			cfg.Opts.InstrumentationName = constant.AppName
+			cfg.Opts.ServiceVersion = constant.AppVersion
 
 			return cfg
 		}),

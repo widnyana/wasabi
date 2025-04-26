@@ -9,7 +9,7 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.30.0"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/fx"
 )
@@ -61,7 +61,7 @@ func Module() fx.Option {
 					return otel.Tracer("wasabi-disabled"), nil
 				}
 
-				return provider.Tracer("wasabi", tracerOpts()...), nil
+				return provider.Tracer("wasabi", tracerOpts(&cfg.Opts)...), nil
 			},
 		),
 
@@ -98,15 +98,9 @@ func tracerProviderOpts(config *Config, exporter *otlptrace.Exporter) []sdktrace
 		sdktrace.WithBatcher(exporter),
 		sdktrace.WithResource(resource.NewWithAttributes(
 			semconv.SchemaURL,
-			semconv.ServiceNameKey.String("wasabi"),
+			semconv.ServiceNameKey.String(config.Opts.ServiceName),
 		)),
 	}
 
 	return tpOpts
-}
-
-func tracerOpts() []trace.TracerOption {
-	tOpts := []trace.TracerOption{}
-
-	return tOpts
 }
